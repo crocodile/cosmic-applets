@@ -1,8 +1,8 @@
 // Copyright 2023 System76 <info@system76.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::wayland::{self, WorkspaceEvent};
-use cctk::{sctk::reexports::calloop::channel::SyncSender, workspace::Workspace};
+use crate::wayland::{self, WorkspaceEvent, WorkspaceSnapshot};
+use cctk::sctk::reexports::calloop::channel::SyncSender;
 use cosmic::iced::{
     self, Subscription,
     futures::{SinkExt, StreamExt, channel::mpsc},
@@ -11,12 +11,12 @@ use cosmic::iced::{
 use std::sync::LazyLock;
 use tokio::sync::Mutex;
 
-pub static WAYLAND_RX: LazyLock<Mutex<Option<mpsc::Receiver<Vec<Workspace>>>>> =
+pub static WAYLAND_RX: LazyLock<Mutex<Option<mpsc::Receiver<WorkspaceSnapshot>>>> =
     LazyLock::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone)]
 pub enum WorkspacesUpdate {
-    Workspaces(Vec<Workspace>),
+    Snapshot(WorkspaceSnapshot),
     Started(SyncSender<WorkspaceEvent>),
     Errored,
 }
@@ -53,7 +53,7 @@ async fn start_listening(
                 guard.as_mut().unwrap()
             };
             if let Some(w) = rx.next().await {
-                _ = output.send(WorkspacesUpdate::Workspaces(w)).await;
+                _ = output.send(WorkspacesUpdate::Snapshot(w)).await;
                 State::Waiting
             } else {
                 _ = output.send(WorkspacesUpdate::Errored).await;
@@ -70,7 +70,7 @@ pub enum State {
 }
 
 pub struct WorkspacesWatcher {
-    rx: mpsc::Receiver<Vec<Workspace>>,
+    rx: mpsc::Receiver<WorkspaceSnapshot>,
     tx: SyncSender<WorkspaceEvent>,
 }
 
