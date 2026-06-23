@@ -298,11 +298,8 @@ impl IcedWorkspacesApplet {
         apps
     }
 
-    fn workspace_tooltip(&self, workspace: &Workspace, apps: &[WorkspaceApp<'_>]) -> String {
-        let mut lines = vec![format!(
-            "{} · {}",
-            workspace.name, self.core.applet.output_name
-        )];
+    fn workspace_tooltip(&self, apps: &[WorkspaceApp<'_>]) -> String {
+        let mut lines = Vec::new();
 
         for app in apps {
             let summary = if app.window_count > 1 {
@@ -508,7 +505,7 @@ impl cosmic::Application for IcedWorkspacesApplet {
                 (suggested_window_size.0.get() as f32, suggested_total)
             };
 
-            let tooltip = self.workspace_tooltip(w, &apps);
+            let tooltip = self.workspace_tooltip(&apps);
             let visible_app_count = if horizontal {
                 apps.len().min(MAX_VISIBLE_APPS)
             } else {
@@ -678,10 +675,14 @@ impl cosmic::Application for IcedWorkspacesApplet {
                 },
             );
 
-            self.core
-                .applet
-                .applet_tooltip(btn, tooltip, false, Message::Surface, None)
-                .into()
+            if has_apps {
+                self.core
+                    .applet
+                    .applet_tooltip(btn, tooltip, false, Message::Surface, None)
+                    .into()
+            } else {
+                btn.into()
+            }
         });
         // TODO if there is a popup_index, create a button with a popup for the remaining workspaces
         // Should it appear on hover or on click?
